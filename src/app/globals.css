@@ -1,26 +1,167 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #000000;
+  --foreground: #ffffff;
+  --primary: #6E4BFF;
+  --primary-light: #9B87FF;
+  --card: rgba(15, 15, 20, 0.4);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --muted-foreground: #888888;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  font-family: var(--font-inter), sans-serif;
+  background-image:
+    radial-gradient(ellipse at top center, rgba(110, 75, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(155, 135, 255, 0.1) 0%, transparent 40%);
+}
+
+/* Glassmorphism Card */
+.glass-card {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--card-border);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-radius: 1.25rem;
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Base Button */
+.glass-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease-out;
+  cursor: pointer;
+  border: none;
+}
+
+.glass-button:active {
+  transform: scale(0.97);
+}
+
+.glass-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary Gradient Button */
+.glass-button-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  box-shadow: 0 4px 20px rgba(110, 75, 255, 0.35);
+}
+
+.glass-button-primary:hover:not(:disabled) {
+  box-shadow: 0 6px 25px rgba(110, 75, 255, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Secondary Button */
+.glass-button-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-button-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Pulse Animation */
+.animate-pulse-ring {
+  animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-ring {
+
+  0%,
+  100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.3;
+  }
+}
+
+/* Glow Effect for Ready State */
+.glow-ready {
+  box-shadow: 0 0 15px rgba(110, 75, 255, 0.5);
+}
+
+/* Ripple Orb Animation */
+.orb-container {
+  --size: 160px;
+  --duration: 2.5s;
+  height: var(--size);
+  aspect-ratio: 1;
+  position: relative;
+}
+
+.orb-layer {
+  position: absolute;
+  background: linear-gradient(0deg,
+      rgb(30 27 109 / 30%) 0%,
+      rgb(137 76 161 / 30%) 100%);
+  border-radius: 50%;
+  box-shadow:
+    rgba(0, 0, 0, 0.5) 0px 10px 10px 0,
+    inset rgba(205, 155, 255, 0.5) 0px 5px 10px -7px;
+  animation: orb-ripple var(--duration) infinite ease-in-out;
+  inset: var(--inset);
+  animation-delay: calc(var(--i) * 0.15s);
+  z-index: calc(var(--i) * -1);
+  transition: all 0.3s ease;
+}
+
+.orb-layer:last-child {
+  filter: blur(30px);
+}
+
+.orb-layer:hover {
+  filter: brightness(2.5) blur(5px);
+}
+
+@keyframes orb-ripple {
+  0% {
+    transform: scale(1);
+    box-shadow:
+      rgba(0, 0, 0, 0.5) 0px 10px 10px 0,
+      inset rgba(205, 155, 255, 0.5) 0px 5px 10px -7px;
+  }
+
+  65% {
+    transform: scale(1.4);
+    box-shadow: rgba(0, 0, 0, 0) 0px 0 0 0;
+  }
+
+  100% {
+    transform: scale(1);
+    box-shadow:
+      rgba(0, 0, 0, 0.5) 0px 10px 10px 0,
+      inset rgba(205, 155, 255, 0.5) 0px 5px 10px -7px;
+  }
 }
