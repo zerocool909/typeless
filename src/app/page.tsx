@@ -143,7 +143,7 @@ export default function Home() {
             </div>
             <h3 className="text-xl font-bold">100% Private</h3>
             <p className="text-muted-foreground leading-relaxed">
-              Your data never leaves your device. No servers, no tracking — just native browser privacy.
+              Your data never leaves your device. No servers, no tracking. Just native browser privacy.
             </p>
           </div>
 

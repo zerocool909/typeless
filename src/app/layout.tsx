@@ -13,8 +13,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: "Typeless | Local WebGPU Transcription",
-  description: "Fast, private, and browser-based audio transcription using OpenAI Whisper and WebGPU.",
+  title: "Typeless | Speak more, type less",
+  description: "Fast, private, and browser-based audio transcription powered by WebGPU and OpenAI Whisper. Speak more, type less.",
 };
 
 export default function RootLayout({

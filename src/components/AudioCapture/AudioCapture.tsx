@@ -11,16 +11,19 @@ interface AudioCaptureProps {
     isProcessing?: boolean;
     transcript?: string;
     onStartRecording?: () => void;
+    onTranscriptChange?: (text: string) => void;
+    onClear?: () => void;
 }
 
 type InputMode = 'mic' | 'tab' | 'file';
 
-export function AudioCapture({ onAudioCaptured, isProcessing, transcript, onStartRecording }: AudioCaptureProps) {
+export function AudioCapture({ onAudioCaptured, isProcessing, transcript, onStartRecording, onTranscriptChange, onClear }: AudioCaptureProps) {
     const { isRecording, duration, startRecording, stopRecording } = useAudioRecorder();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [inputMode, setInputMode] = useState<InputMode>('mic');
     const [autoCopy, setAutoCopy] = useState(true);
     const [copied, setCopied] = useState(false);
+    const [showBubble, setShowBubble] = useState(false);
 
     const formatDuration = (seconds: number) => {
         const min = Math.floor(seconds / 60);
@@ -62,6 +65,14 @@ export function AudioCapture({ onAudioCaptured, isProcessing, transcript, onStar
             handleCopy();
         }
     }, [transcript, isProcessing, isRecording, autoCopy]);
+
+    useEffect(() => {
+        if (transcript && !isRecording) {
+            setShowBubble(true);
+        } else if (isRecording) {
+            setShowBubble(false);
+        }
+    }, [transcript, isRecording]);
 
     return (
         <div className="w-full flex flex-col items-center">
@@ -153,7 +164,7 @@ export function AudioCapture({ onAudioCaptured, isProcessing, transcript, onStar
                             </div>
                         </div>
                     ) : (
-                        <div className="relative w-56 h-56 rounded-full flex items-center justify-center bg-gradient-to-br from-primary-light via-primary to-indigo-700 shadow-[0_0_100px_rgba(110,75,255,0.4)] transition-transform duration-500 group-hover:scale-105">
+                        <div className="relative w-56 h-56 rounded-full flex items-center justify-center bg-gradient-to-br from-primary-light via-primary to-purple-900 shadow-[0_0_100px_rgba(110,75,255,0.4)] transition-transform duration-500 group-hover:scale-105">
                             <div className="absolute inset-2 rounded-full bg-gradient-to-t from-transparent via-white/5 to-white/20" />
                             <div className="z-10 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl">
                                 <Mic className="w-12 h-12 text-white" />
@@ -162,13 +173,69 @@ export function AudioCapture({ onAudioCaptured, isProcessing, transcript, onStar
                     )}
                 </div>
 
-                {/* Status Indicator (Floating) */}
+                {/* Status Badge */}
                 {isRecording && (
-                    <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 bg-white text-red-600 px-4 py-1.5 rounded-full font-bold text-xs uppercase tracking-widest shadow-xl flex items-center gap-2">
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-8 px-6 py-2 bg-white/10 backdrop-blur-xl border border-white/10 rounded-full flex items-center gap-3 text-white text-xs font-black uppercase tracking-widest animate-in fade-in slide-in-from-bottom-4 duration-500">
                         <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
                         <span>Recording • {formatDuration(duration)}</span>
                     </div>
                 )}
+            </div>
+
+            {/* Emerging Transcript Bubble */}
+            <div className={cn(
+                "w-full max-w-2xl mt-12 transition-all duration-1000 ease-out transform origin-top",
+                showBubble && transcript
+                    ? "opacity-100 translate-y-0 scale-100"
+                    : "opacity-0 -translate-y-12 scale-90 pointer-events-none h-0 p-0 overflow-hidden"
+            )}>
+                <div className="relative group/bubble">
+                    {/* Multi-layered glow for the bubble */}
+                    <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-indigo-500/20 to-primary/20 rounded-[3rem] blur-2xl opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-1000" />
+
+                    <div className="relative glass-card rounded-[2.5rem] p-10 border-white/5 shadow-[0_32px_80px_-16px_rgba(0,0,0,0.6)] bg-zinc-950/40 backdrop-blur-3xl overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-white/10 before:to-transparent before:opacity-30 pointer-events-auto">
+                        <div className="flex items-center justify-between mb-8 relative z-10">
+                            <div className="flex items-center gap-4">
+                                <div className="p-2.5 bg-primary/10 rounded-xl border border-primary/20">
+                                    <FileAudio className="w-4 h-4 text-primary-light" />
+                                </div>
+                                <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Transcript Draft</h2>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleCopy}
+                                    className="p-3 hover:bg-white/5 rounded-full transition-all group/action border border-transparent hover:border-white/5"
+                                    title="Copy to clipboard"
+                                >
+                                    {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4 text-white/20 group-hover/action:text-white" />}
+                                </button>
+                                <button
+                                    onClick={() => onClear?.()}
+                                    className="p-3 hover:bg-red-500/10 rounded-full transition-all group/action border border-transparent hover:border-red-500/10"
+                                    title="Clear transcript"
+                                >
+                                    <Square className="w-4 h-4 text-white/20 group-hover/action:text-red-400" />
+                                </button>
+                            </div>
+                        </div>
+
+                        <textarea
+                            value={transcript}
+                            onChange={(e) => onTranscriptChange?.(e.target.value)}
+                            placeholder="Your transcript will appear here..."
+                            className="w-full bg-transparent text-white/70 text-sm leading-relaxed font-medium resize-none outline-none placeholder:text-white/10 min-h-[160px] relative z-10 tracking-tight selection:bg-primary/20"
+                            onInput={(e) => {
+                                const target = e.target as HTMLTextAreaElement;
+                                target.style.height = 'auto';
+                                target.style.height = target.scrollHeight + 'px';
+                            }}
+                        />
+
+                        <div className="mt-8 flex justify-center relative z-10">
+                            <div className="h-1 w-12 rounded-full bg-white/5" />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* CTA Button & Actions Row */}
