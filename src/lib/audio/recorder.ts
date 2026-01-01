@@ -3,22 +3,48 @@ export class AudioRecorder {
     private audioContext: AudioContext | null = null;
     private processor: ScriptProcessorNode | null = null;
     private source: MediaStreamAudioSourceNode | null = null;
-    private rawBuffer: number[] = [];
+    private rawBuffer: Float32Array = new Float32Array(0);
     private lastEmittedIndex = 0;
     private onDataCallback?: (blob: Blob) => void;
 
+    private downsample(buffer: Float32Array, fromRate: number, toRate: number): Float32Array {
+        if (fromRate === toRate) return buffer;
+        const ratio = fromRate / toRate;
+        const newLength = Math.round(buffer.length / ratio);
+        const result = new Float32Array(newLength);
+
+        for (let i = 0; i < newLength; i++) {
+            const nextIndex = i * ratio;
+            const leftIndex = Math.floor(nextIndex);
+            const rightIndex = Math.ceil(nextIndex);
+            const weight = nextIndex - leftIndex;
+
+            if (rightIndex >= buffer.length) {
+                result[i] = buffer[leftIndex];
+            } else {
+                result[i] = buffer[leftIndex] * (1 - weight) + buffer[rightIndex] * weight;
+            }
+        }
+        return result;
+    }
+
     async start(onData?: (blob: Blob) => void): Promise<void> {
         this.onDataCallback = onData;
-        this.rawBuffer = [];
+        this.rawBuffer = new Float32Array(0);
         this.lastEmittedIndex = 0;
-        this.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
-            sampleRate: 16000,
+        this.stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true,
+            }
         });
 
+        // Initialize at native sample rate (crucial for Windows stability)
+        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const nativeRate = this.audioContext.sampleRate;
+
         this.source = this.audioContext.createMediaStreamSource(this.stream);
-        // Using 4096 buffer size for a balance of latency and stability
         this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
 
         this.source.connect(this.processor);
@@ -30,17 +56,20 @@ export class AudioRecorder {
         this.processor.onaudioprocess = (e) => {
             const inputData = e.inputBuffer.getChannelData(0);
 
-            // Add to our raw buffer
-            for (let i = 0; i < inputData.length; i++) {
-                this.rawBuffer.push(inputData[i]);
-            }
+            // Append to rawBuffer efficiently
+            const newBuffer = new Float32Array(this.rawBuffer.length + inputData.length);
+            newBuffer.set(this.rawBuffer);
+            newBuffer.set(inputData, this.rawBuffer.length);
+            this.rawBuffer = newBuffer;
 
             // Check if it's time to emit a chunk
             const now = Date.now();
             if (onData && now - lastEmitTime >= EMIT_INTERVAL) {
-                const chunk = new Float32Array(this.rawBuffer.slice(this.lastEmittedIndex));
-                if (chunk.length > 0) {
-                    const blob = new Blob([chunk.buffer], { type: 'audio/raw-pcm' });
+                const rawChunk = this.rawBuffer.slice(this.lastEmittedIndex);
+                if (rawChunk.length > 0) {
+                    // Resample to 16kHz for Whisper
+                    const resampledChunk = this.downsample(rawChunk, nativeRate, 16000);
+                    const blob = new Blob([resampledChunk.buffer as ArrayBuffer], { type: 'audio/raw-pcm' });
                     onData(blob);
                     this.lastEmittedIndex = this.rawBuffer.length;
                 }
@@ -50,13 +79,15 @@ export class AudioRecorder {
     }
 
     async stop(): Promise<Blob> {
+        const nativeRate = this.audioContext?.sampleRate || 16000;
+
         if (this.audioContext) {
             await this.audioContext.close();
         }
 
-        // Return only the final NEW samples transcribed since the last emit
-        const chunk = new Float32Array(this.rawBuffer.slice(this.lastEmittedIndex));
-        const blob = new Blob([chunk.buffer], { type: 'audio/raw-pcm' });
+        const rawChunk = this.rawBuffer.slice(this.lastEmittedIndex);
+        const resampledChunk = this.downsample(rawChunk, nativeRate, 16000);
+        const blob = new Blob([resampledChunk.buffer as ArrayBuffer], { type: 'audio/raw-pcm' });
 
         this.cleanup();
         return blob;
@@ -78,16 +109,13 @@ export class AudioRecorder {
         this.audioContext = null;
     }
 
-    /**
-     * Converts the custom raw-pcm Blob back to Float32Array
-     */
     static async processAudio(blob: Blob): Promise<Float32Array> {
         if (blob.type === 'audio/raw-pcm') {
             const arrayBuffer = await blob.arrayBuffer();
             return new Float32Array(arrayBuffer);
         }
 
-        // Fallback for file uploads (non-streaming)
+        // Fallback for file uploads
         const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)({
             sampleRate: 16000,
         });
