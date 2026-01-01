@@ -2,10 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { AudioCapture } from '@/components/AudioCapture/AudioCapture';
-import { TranscriptEditor } from '@/components/Transcript/TranscriptEditor';
 import { ModelStatus } from '@/components/ModelLoader/ModelStatus';
 import { useTranscriber } from '@/hooks/useTranscriber';
 import { Brain, Sparkles, FileText } from 'lucide-react';
+import ASMRBackground from '@/components/ui/ASMRBackground';
 
 export default function Home() {
   const [history, setHistory] = useState<string>('');
@@ -76,7 +76,9 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-black text-white selection:bg-primary/30">
+    <main className="min-h-screen text-white selection:bg-primary/30 relative overflow-x-hidden antialiased">
+      <ASMRBackground />
+
       {/* Model Status - Floating Badge */}
       <div className="fixed top-6 right-6 z-50">
         <ModelStatus
@@ -89,40 +91,28 @@ export default function Home() {
 
       <div className="container mx-auto px-4 max-w-5xl">
         {/* Hero Section */}
-        <section className="flex flex-col items-center justify-center pt-24 pb-16 text-center space-y-8 animate-in fade-in slide-in-from-top-4 duration-1000">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-primary-light text-[10px] font-bold uppercase tracking-widest">
-            <Sparkles className="w-3 h-3" />
-            <span>Local AI Inference</span>
-          </div>
-
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter gradient-text py-2">
+        <section className="relative pt-32 pb-16 px-4 flex flex-col items-center text-center overflow-hidden">
+          <h1 className="text-8xl md:text-9xl font-black mb-8 tracking-[-0.05em] text-transparent bg-clip-text bg-gradient-to-br from-white via-primary-light to-primary animate-in fade-in zoom-in duration-1000 font-outfit leading-none py-2">
             Typeless
           </h1>
-
-          <p className="max-w-2xl text-muted-foreground text-xl md:text-2xl font-medium leading-tight">
-            Privacy-first, browser-based audio transcription powered by WebGPU and OpenAI Whisper.
+          <p className="max-w-2xl text-xl md:text-3xl text-white/40 font-bold tracking-tight leading-tight animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+            Speak more, type less.
+          </p>
+          <p className="max-w-xl text-lg md:text-xl text-zinc-500 font-medium tracking-tight leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300 mt-4">
+            Fast and private transcription, powered by WebGPU and OpenAI Whisper.
           </p>
         </section>
 
         {/* Hero Transcription Area */}
-        <section className="mb-32 flex flex-col items-center">
+        <section className="mb-32 flex flex-col items-center px-4">
           <AudioCapture
             onAudioCaptured={handleAudioCaptured}
             isProcessing={isProcessing}
             transcript={history ? history + ' ' + transcript : transcript}
             onStartRecording={clearTranscript}
+            onTranscriptChange={setHistory}
+            onClear={clearAll}
           />
-        </section>
-
-        {/* Content Section: Editor */}
-        <section className="mb-40 grid grid-cols-1 gap-12">
-          <div className="w-full h-[600px]">
-            <TranscriptEditor
-              transcript={history ? history + '\n' + transcript : transcript}
-              isProcessing={isProcessing}
-              onClear={clearAll}
-            />
-          </div>
         </section>
 
         {/* Feature Sections */}
